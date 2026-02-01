@@ -1,5 +1,8 @@
 package tcp.server;
 
+import dispatcher.Dispatcher;
+import services.Services;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
@@ -12,18 +15,22 @@ public class TcpServer {
     private static final String HOST = "localhost";
 
     private final int port;
+    private final Services services;
+    private final Dispatcher dispatcher;
     private boolean isRunning;
     private Selector selector;
     private CommandExecutor executor;
 
-    public TcpServer(int port) {
+    public TcpServer(int port, Services services, Dispatcher dispatcher) {
         this.port = port;
+        this.services = services;
+        this.dispatcher = dispatcher;
         this.isRunning = false;
     }
 
     public void start() {
         try (ServerSocketChannel serverChannel = configureServerChannel()) {
-            executor = new CommandExecutor(selector);
+            executor = new CommandExecutor(selector, services, dispatcher);
             isRunning = true;
             while (isRunning) {
                 int countSelectedKeys = selector.select();

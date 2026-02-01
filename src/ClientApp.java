@@ -1,56 +1,78 @@
 final int BUFFER_SIZE = 16 * 1024;
 
-void main() throws Exception{
-    List<String> cmds = List.of(
-        "login деян парола",
-        "upload пейзаш.png ./resource/landscape.png",
-        "quantize пейзаш.png 10 4",
-        "download пейзаш_10k.png ./resource/landscape_10k.png",
-        "logout"
-    );
+final List<String> cmds = List.of(
+    "login deyan 1234",
+    "whoami",
+    "logout",
+    "whoami"
+);
 
+void main() throws Exception {
+    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
+    clientChannel.configureBlocking(false);
     ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
-    for (String cmd: cmds) {
+
+    sendCommands(clientChannel, buf);
+
+    Selector selector = Selector.open();
+    clientChannel.register(selector, SelectionKey.OP_READ, buf);
+
+    while (true) {
+        int countSelectedKeys = selector.select();
+        if (countSelectedKeys == 0) {
+            continue;
+        }
+        handleSelectedKeys(selector);
+    }
+}
+
+void sendCommands(SocketChannel clientChannel, ByteBuffer buf) throws IOException {
+    for (String cmd : cmds) {
         putStringIntoByteBuffer(buf, cmd);
     }
-
-    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
     buf.flip();
     clientChannel.write(buf);
-
-    Thread.sleep(2000);
-
-    byte[] finalCmdPart1 = "login".getBytes(StandardCharsets.UTF_8);
-    byte[] finalCmdPart2 = " деян ".getBytes(StandardCharsets.UTF_8);
-    byte[] finalCmdPart3 = "парола".getBytes(StandardCharsets.UTF_8);
-
     buf.clear();
-    buf.putInt(finalCmdPart1.length + finalCmdPart2.length + finalCmdPart3.length);
-    buf.flip();
-    clientChannel.write(buf);
-    Thread.sleep(500);
-    buf.clear();
-    buf.put(finalCmdPart1);
-    buf.flip();
-    clientChannel.write(buf);
-    Thread.sleep(500);
-    buf.clear();
-    buf.put(finalCmdPart2);
-    buf.flip();
-    clientChannel.write(buf);
-    Thread.sleep(500);
-    buf.clear();
-    buf.put(finalCmdPart3);
-    buf.flip();
-    clientChannel.write(buf);
-
-//    clientChannel.shutdownInput();
-//    clientChannel.shutdownOutput();
-    clientChannel.close();
 }
 
 void putStringIntoByteBuffer(ByteBuffer buf, String cmd) {
     byte[] bytes = cmd.getBytes(StandardCharsets.UTF_8);
     buf.putInt(bytes.length);
     buf.put(bytes);
+}
+
+private void handleSelectedKeys(Selector selector) throws IOException {
+    var selectedKeys = selector.selectedKeys().iterator();
+    while (selectedKeys.hasNext()) {
+        SelectionKey key = selectedKeys.next();
+        selectedKeys.remove();
+
+        if (key.isReadable()) {
+            read(key);
+        }
+    }
+}
+
+private void read(SelectionKey key) throws IOException {
+    SocketChannel clientChannel = (SocketChannel) key.channel();
+    ByteBuffer buf = (ByteBuffer) key.attachment();
+    clientChannel.read(buf);
+    buf.flip();
+
+    while (buf.remaining() >= Integer.SIZE / Byte.SIZE) {
+        writeToStdout(buf);
+    }
+
+    buf.compact();
+}
+
+private void writeToStdout(ByteBuffer buf)  throws IOException{
+
+    int msgLen = buf.getInt();
+    int originalLimit = buf.limit();
+    buf.limit(buf.position() + msgLen);
+    Channels.newChannel(System.out).write(buf);
+    System.out.println();
+    buf.limit(originalLimit);
+
 }

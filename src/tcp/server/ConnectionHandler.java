@@ -1,5 +1,7 @@
 package tcp.server;
 
+import auth.Session;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
@@ -17,6 +19,7 @@ public class ConnectionHandler {
     private final SocketChannel clientChannel;
     private final Selector selector;
     private final CommandExecutor executor;
+    private final Session session;
     private TcpResponseWriter responseWriter;
     private boolean didWroteOutputLen;
 
@@ -26,6 +29,7 @@ public class ConnectionHandler {
         this.clientChannel = clientChannel;
         this.selector = selector;
         this.executor = executor;
+        this.session = new Session();
         this.responseWriter = null;
         this.didWroteOutputLen = false;
     }
@@ -54,7 +58,7 @@ public class ConnectionHandler {
         }
     }
 
-    private void handleDisconnect(SelectionKey key)  {
+    private void handleDisconnect(SelectionKey key) {
         try {
             System.out.println("Client disconnected: " + clientChannel.getRemoteAddress());
             clientChannel.close();
@@ -83,7 +87,7 @@ public class ConnectionHandler {
     private void dispatchCommand(String cmd) {
         this.responseWriter = new TcpResponseWriter(clientChannel);
         clientChannel.keyFor(selector).interestOps(0);
-        executor.executeCommand(responseWriter, cmd);
+        executor.executeCommand(responseWriter, cmd, session);
     }
 
     public void handleWrite(SelectionKey key) {

@@ -1,8 +1,11 @@
 package tcp.server;
 
+import auth.Session;
 import command.CommandContext;
 import command.CommandContextCreator;
-import handlers.EchoHandler;
+import dispatcher.Dispatcher;
+import dispatcher.MissingHandlerException;
+import services.Services;
 
 import java.nio.channels.Selector;
 import java.util.ArrayList;
@@ -11,17 +14,25 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CommandExecutor {
     private final Selector selector;
+    private final Services services;
+    private final Dispatcher dispatcher;
     private final ConcurrentLinkedQueue<TcpResponseWriter> queue;
 
-    public CommandExecutor(Selector selector) {
+    public CommandExecutor(Selector selector, Services services, Dispatcher dispatcher) {
         this.selector = selector;
+        this.services = services;
+        this.dispatcher = dispatcher;
         this.queue = new ConcurrentLinkedQueue<>();
     }
 
-    public void executeCommand(TcpResponseWriter writer, String input) {
+    public void executeCommand(TcpResponseWriter writer, String input, Session session) {
         new Thread(() -> {
-            CommandContext ctx = CommandContextCreator.newCommandContext(input);
-            new EchoHandler().handle(writer, ctx);
+            CommandContext ctx = CommandContextCreator.newCommandContext(input, session, services);
+            try {
+                dispatcher.dispatch(writer, ctx);
+            } catch (MissingHandlerException e) {
+                writer.write("Unsupported command");
+            }
             queue.add(writer);
             selector.wakeup();
         }).start();

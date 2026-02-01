@@ -1,5 +1,8 @@
 package command;
 
+import auth.Session;
+import services.Services;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,8 +38,8 @@ public class CommandContextCreator {
         return new Command(arguments.getFirst(), commandArguments);
     }
 
-    public static CommandContext newCommandContext(String input) {
+    public static CommandContext newCommandContext(String input, Session session, Services services) {
         Command command = newCommand(input);
-        return new CommandContext(command);
+        return new CommandContext(command, session, services);
     }
 }
