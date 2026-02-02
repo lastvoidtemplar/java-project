@@ -29,11 +29,13 @@
 Алгоритъмът(Kmean++) ще генерира изображение с заден брой цветове, което максимално наподобява оригиналното. Резултата ще се запазва в работната папка на потребителя с име "<оригиналното име>-<броя на цветовете>.<оригиналното разширение>".
 
 ## Client
-- register deyan pass
-- login deyan pass
-- upload landscape.jpg ./resources/client/landscape.jpg
-- color-quantize landscape.jpg 10
-- download landscape_k10.jpg ./resources/client/process_landscape.jpg
+```
+register deyan pass
+login deyan pass
+upload landscape.jpg ./resources/client/landscape.jpg
+color-quantize landscape.jpg 10
+download landscape_k10.jpg ./resources/client/process_landscape.jpg
+```
 
 ## Tests
 
