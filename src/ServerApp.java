@@ -8,6 +8,7 @@ import handlers.auth.LoginHandler;
 import handlers.auth.LogoutHandler;
 import handlers.auth.RegisterHandler;
 import handlers.auth.WhoAmIHandler;
+import handlers.user.storage.DownloadHandler;
 import handlers.user.storage.UploadHandler;
 import services.Services;
 import tcp.server.TcpServer;
@@ -41,5 +42,6 @@ private Dispatcher setupDispatcher() {
         .registerHandler("logout", new LogoutHandler())
         .registerHandler("whoami", new WhoAmIHandler())
         .registerHandler("upload", new UploadHandler())
+        .registerHandler("download", new DownloadHandler())
         .build();
 }

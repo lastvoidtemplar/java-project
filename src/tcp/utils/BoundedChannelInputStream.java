@@ -1,4 +1,4 @@
-package tcp.server;
+package tcp.utils;
 
 import java.io.IOException;
 import java.io.InputStream;

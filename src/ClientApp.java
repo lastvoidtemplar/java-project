@@ -1,7 +1,11 @@
+import tcp.utils.BoundedChannelInputStream;
+
+import javax.xml.transform.Source;
+
 final int BUFFER_SIZE = 16 * 1024;
 
 final List<String> cmds = List.of(
-    "login deyan 1234",
+    "login ivan 1234",
     "whoami",
     "logout",
     "whoami"
@@ -11,18 +15,22 @@ void main() throws Exception {
     SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
     ByteBuffer buf = ByteBuffer.allocate(1024);
 
-    putStringIntoByteBuffer(buf, "login deyan 1234");
+    putStringIntoByteBuffer(buf, "login ivan 4321");
     buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);
     buf.clear();
+    clientChannel.read(buf);
+    buf.clear();
 
-    putStringIntoByteBuffer(buf, "upload landscape1.jpg");
+    putStringIntoByteBuffer(buf, "download landscape2.jpg");
+    buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);
     buf.clear();
-    Path path = Path.of("./resources/landscape.jpg");
-    sendFile(clientChannel, buf, path);
+    Path path = Path.of("./resources/downloaded_landscape.jpg");
+    Thread.sleep(1000);
+    downLoadFile(clientChannel, buf, path);
 }
 
 void sendCommands(SocketChannel clientChannel, ByteBuffer buf) throws IOException {
@@ -87,5 +95,23 @@ private void sendFile(SocketChannel clientChannel, ByteBuffer buf, Path path) th
             clientChannel.write(buf);
             buf.compact();
         }
+    }
+}
+
+private void downLoadFile(SocketChannel clientChannel, ByteBuffer buf, Path path) throws IOException {
+    clientChannel.read(buf);
+    buf.flip();
+    int messageSize = buf.getInt();
+    byte[] resBytes = new byte[messageSize];
+    buf.get(resBytes);
+    String res = new String(resBytes, StandardCharsets.UTF_8);
+    System.out.println(res);
+    if (res.startsWith("error")) {
+        System.out.println("ERROR");
+        return;
+    }
+    int fileSize = buf.getInt();
+    try (InputStream socketStream = new BoundedChannelInputStream(clientChannel, buf, fileSize)) {
+        Files.copy(socketStream, path);
     }
 }

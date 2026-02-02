@@ -1,6 +1,6 @@
 package user.storage;
 
-public class FileAlreadyExistsException extends RuntimeException {
+public class FileAlreadyExistsException extends Exception {
     public FileAlreadyExistsException(String message) {
         super(message);
     }

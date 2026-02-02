@@ -1,6 +1,7 @@
 package tcp.server;
 
 import auth.Session;
+import tcp.utils.BoundedChannelInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
