@@ -34,3 +34,7 @@
 - upload landscape.jpg ./resources/client/landscape.jpg
 - color-quantize landscape.jpg 10
 - download landscape_k10.jpg ./resources/client/process_landscape.jpg
+
+## Tests
+
+- More tests will be added mainly handlers

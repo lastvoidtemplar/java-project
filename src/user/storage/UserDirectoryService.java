@@ -63,7 +63,7 @@ public class UserDirectoryService {
         Path filePath = root.resolve(username, filename);
         Files.createDirectories(filePath.getParent());
         if (!Files.exists(filePath)) {
-            throw new FileNotFoundException(FILE_ALREADY_EXISTS_MESSAGE);
+            throw new FileNotFoundException(FILE_NOT_FOUNT_MESSAGE);
         }
         return ImageIO.read(filePath.toFile());
     }

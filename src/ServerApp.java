@@ -2,8 +2,6 @@ import auth.AuthService;
 import auth.UserFileStorage;
 import auth.UserPersistenceException;
 import dispatcher.Dispatcher;
-import handlers.EchoHandler;
-import handlers.StreamHandler;
 import handlers.auth.LoginHandler;
 import handlers.auth.LogoutHandler;
 import handlers.auth.RegisterHandler;

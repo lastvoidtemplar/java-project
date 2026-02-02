@@ -38,7 +38,7 @@ public class UserFileStorage {
             Formatter fmt = new Formatter();
             String line = fmt.format(SAVE_USER_FORMAT, user.name(), user.password()).toString();
             writer.write(line);
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException e) {
             throw new UserPersistenceException("Couldn`t load users", e);
         }
     }
