@@ -3,7 +3,6 @@ package handlers.user.storage;
 import command.CommandContext;
 import command.CommandHandler;
 import command.ResponseWriter;
-import user.storage.DownloadResult;
 import user.storage.FileNotFoundException;
 
 import java.io.IOException;

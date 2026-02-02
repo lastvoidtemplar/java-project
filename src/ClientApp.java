@@ -23,7 +23,7 @@ void main() throws Exception {
     clientChannel.read(buf);
     buf.clear();
 
-    putStringIntoByteBuffer(buf, "delete-file landscape1.jpg");
+    putStringIntoByteBuffer(buf, "color-quantize landscape.jpg 10");
     buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);

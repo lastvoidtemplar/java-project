@@ -8,6 +8,7 @@ import handlers.auth.LoginHandler;
 import handlers.auth.LogoutHandler;
 import handlers.auth.RegisterHandler;
 import handlers.auth.WhoAmIHandler;
+import handlers.user.image.processing.ColorQuantizerHandler;
 import handlers.user.storage.DeleteFileHandler;
 import handlers.user.storage.DownloadHandler;
 import handlers.user.storage.ListFilesHandler;
@@ -47,5 +48,6 @@ private Dispatcher setupDispatcher() {
         .registerHandler("download", new DownloadHandler())
         .registerHandler("list-files", new ListFilesHandler())
         .registerHandler("delete-file", new DeleteFileHandler())
+        .registerHandler("color-quantize", new ColorQuantizerHandler())
         .build();
 }
