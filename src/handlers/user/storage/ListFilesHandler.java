@@ -11,6 +11,7 @@ public class ListFilesHandler implements CommandHandler {
     private static final String INVALID_LIST_FILES_COMMAND_FORMAT =
         "Logout command doesn`t need arguments";
     private static final String LOGIN_FIRST_MESSAGE = "Login first!";
+    private static final String EMPTY_DIRECTORY_MESSAGE = "the user directory is empty";
     private static final String SERVER_PROBLEM_MESSAGE =
         "Server problem 500";
 
@@ -29,7 +30,11 @@ public class ListFilesHandler implements CommandHandler {
         String loggedUsername = ctx.session().getUsername();
         try {
             List<String> filenames = ctx.services().userDirectoryService().list(loggedUsername);
-            writer.write(String.join(" ", filenames));
+            if (filenames.isEmpty()) {
+                writer.write(EMPTY_DIRECTORY_MESSAGE);
+            } else {
+                writer.write(String.join(" ", filenames));
+            }
         } catch (IOException e) {
             writer.write(SERVER_PROBLEM_MESSAGE);
         }

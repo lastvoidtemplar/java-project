@@ -18,8 +18,8 @@ import tcp.server.TcpServer;
 import user.storage.UserDirectoryService;
 
 static int PORT = 3000;
-static String USERS_FILE_NAME = "./resources/users.txt";
-static String ROOT_USER_DIRECTORY = "./resources/users_files";
+static String USERS_FILE_NAME = "./resources/server/users.txt";
+static String ROOT_USER_DIRECTORY = "./resources/server/users_files";
 
 void main() throws Exception {
     Services services = setupServices();
@@ -38,8 +38,6 @@ private Services setupServices() throws UserPersistenceException {
 
 private Dispatcher setupDispatcher() {
     return Dispatcher.newBuilder()
-        .registerHandler("echo", new EchoHandler())
-        .registerHandler("stream", new StreamHandler())
         .registerHandler("register", new RegisterHandler())
         .registerHandler("login", new LoginHandler())
         .registerHandler("logout", new LogoutHandler())

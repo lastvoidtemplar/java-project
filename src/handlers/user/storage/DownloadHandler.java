@@ -15,8 +15,8 @@ public class DownloadHandler implements CommandHandler {
     private static final String LOGIN_FIRST_MESSAGE = "Login first!";
     private static final String SERVER_PROBLEM_MESSAGE =
         "Server problem 500";
-    private static final String SUCCESSFUL_MESSAGE = "success";
-    private static final String ERROR_MESSAGE = "error";
+    private static final String SUCCESSFUL_MESSAGE = "correct";
+    private static final String ERROR_MESSAGE = "error  ";
     private static final int DOWNLOAD_ARGUMENT_COUNT = 1;
     private static final int ARGUMENTS_FILENAME_IND = 0;
 
@@ -24,11 +24,12 @@ public class DownloadHandler implements CommandHandler {
     public void handle(ResponseWriter writer, CommandContext ctx) {
         List<String> args = ctx.cmd().commandArgs();
         if (args.size() != DOWNLOAD_ARGUMENT_COUNT) {
+            writer.write(ERROR_MESSAGE);
             writer.write(INVALID_DOWNLOAD_COMMAND_FORMAT);
             return;
         }
         if (!ctx.session().isLogged()) {
-            System.out.println(LOGIN_FIRST_MESSAGE);
+            writer.write(ERROR_MESSAGE);
             writer.write(LOGIN_FIRST_MESSAGE);
             return;
         }

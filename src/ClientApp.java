@@ -1,51 +1,98 @@
 import tcp.utils.BoundedChannelInputStream;
 
-import javax.xml.transform.Source;
+final int BUFFER_SIZE = 8 * 1024;
+final String HOST = "localhost";
+final int PORT = 3000;
+final int INT_SIZE = 4;
+final int DOWNLOAD_MESSAGE_LEN = 7;
+final String EXIT = "exit";
 
-final int BUFFER_SIZE = 16 * 1024;
-
-final List<String> cmds = List.of(
-    "login ivan 1234",
-    "whoami",
-    "logout",
-    "whoami"
-);
-
-void main() throws Exception {
-    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
-    ByteBuffer buf = ByteBuffer.allocate(1024);
-
-    putStringIntoByteBuffer(buf, "login deyan 1234");
-    buf.putInt(0);
-    buf.flip();
-    clientChannel.write(buf);
-    buf.clear();
-    clientChannel.read(buf);
-    buf.clear();
-
-    putStringIntoByteBuffer(buf, "color-quantize landscape.jpg 10");
-    buf.putInt(0);
-    buf.flip();
-    clientChannel.write(buf);
-    buf.clear();
-
-    clientChannel.read(buf);
-    buf.flip();
-    int messageSize = buf.getInt();
-    byte[] resBytes = new byte[messageSize];
-    buf.get(resBytes);
-    String res = new String(resBytes, StandardCharsets.UTF_8);
-    System.out.println(res);
-}
-
-void sendCommands(SocketChannel clientChannel, ByteBuffer buf) throws IOException {
-    for (String cmd : cmds) {
-        putStringIntoByteBuffer(buf, cmd);
+void main() {
+    ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
+    try (
+        SocketChannel clientSocket = SocketChannel.open(new InetSocketAddress(HOST, PORT));
+        BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in))
+    ) {
+        String line;
+        while ((line = stdin.readLine()) != null) {
+            if (line.isBlank()) {
+                continue;
+            }
+            String[] splitLine = line.split(" ");
+            if (splitLine[0].equals(EXIT)) {
+                return;
+            }
+            dispatch(splitLine, clientSocket, buffer);
+        }
+    } catch (IOException e) {
+        // there isn't much we can do when a IOException happens
+        throw new UncheckedIOException(e);
     }
-    buf.flip();
-    clientChannel.write(buf);
-    buf.clear();
 }
+
+void dispatch(String[] splitLine, SocketChannel clientSocket, ByteBuffer buffer) throws IOException {
+    switch (splitLine[0]) {
+        case "register", "login", "logout", "whoami", "list-files", "delete-file", "color-quantize" ->
+            handleLineAndMessageResponse(splitLine, clientSocket, buffer);
+        case "upload" -> handleUpload(splitLine, clientSocket, buffer);
+        case "download" -> handleDownload(splitLine, clientSocket, buffer);
+        default -> System.out.println("Invalid command");
+    }
+}
+
+void handleLineAndMessageResponse(String[] splitLine, SocketChannel clientSocket, ByteBuffer buffer)
+    throws IOException {
+    String cmd = String.join(" ", Arrays.asList(splitLine));
+    putStringIntoByteBuffer(buffer, cmd);
+    putNullStreamIntoByteBuffer(buffer);
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+        clientSocket.write(buffer);
+    }
+    buffer.clear();
+
+    String response = readResponseMessage(clientSocket, buffer);
+    buffer.clear();
+    System.out.println(response);
+}
+
+void handleUpload(String[] splitLine, SocketChannel clientSocket, ByteBuffer buffer)
+    throws IOException {
+    Path filePath = Path.of(splitLine[splitLine.length - 1]);
+    if (!Files.exists(filePath)) {
+        System.out.println("File doesn't exists");
+        return;
+    }
+
+    String cmd = String.join(" ", Arrays.asList(splitLine).subList(0, splitLine.length - 1));
+    putStringIntoByteBuffer(buffer, cmd);
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+        clientSocket.write(buffer);
+    }
+    buffer.clear();
+
+    sendFile(clientSocket, buffer, filePath);
+    buffer.clear();
+    String response = readResponseMessage(clientSocket, buffer);
+    buffer.clear();
+    System.out.println(response);
+}
+
+void handleDownload(String[] splitLine, SocketChannel clientSocket, ByteBuffer buffer)
+    throws IOException {
+    String cmd = String.join(" ", Arrays.asList(splitLine).subList(0, splitLine.length - 1));
+    putStringIntoByteBuffer(buffer, cmd);
+    putNullStreamIntoByteBuffer(buffer);
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+        clientSocket.write(buffer);
+    }
+    buffer.clear();
+    readDownloadResponse(clientSocket, buffer, Path.of(splitLine[splitLine.length - 1]));
+    buffer.clear();
+}
+
 
 void putStringIntoByteBuffer(ByteBuffer buf, String cmd) {
     byte[] bytes = cmd.getBytes(StandardCharsets.UTF_8);
@@ -53,70 +100,83 @@ void putStringIntoByteBuffer(ByteBuffer buf, String cmd) {
     buf.put(bytes);
 }
 
-private void handleSelectedKeys(Selector selector) throws IOException {
-    var selectedKeys = selector.selectedKeys().iterator();
-    while (selectedKeys.hasNext()) {
-        SelectionKey key = selectedKeys.next();
-        selectedKeys.remove();
+void putNullStreamIntoByteBuffer(ByteBuffer buf) {
+    buf.putInt(0);
+}
 
-        if (key.isReadable()) {
-            read(key);
-        }
+String readResponseMessage(SocketChannel clientChannel, ByteBuffer buffer) throws IOException {
+    while (buffer.position() < INT_SIZE) {
+        clientChannel.read(buffer);
     }
-}
-
-private void read(SelectionKey key) throws IOException {
-    SocketChannel clientChannel = (SocketChannel) key.channel();
-    ByteBuffer buf = (ByteBuffer) key.attachment();
-    clientChannel.read(buf);
-    buf.flip();
-
-    while (buf.remaining() >= Integer.SIZE / Byte.SIZE) {
-        writeToStdout(buf);
+    buffer.flip();
+    int messageLen = buffer.getInt();
+    buffer.compact();
+    while (buffer.position() < messageLen) {
+        clientChannel.read(buffer);
     }
-
-    buf.compact();
+    buffer.flip();
+    byte[] messageBytes = new byte[messageLen];
+    buffer.get(messageBytes, 0, messageLen);
+    return new String(messageBytes, StandardCharsets.UTF_8);
 }
 
-private void writeToStdout(ByteBuffer buf) throws IOException {
-
-    int msgLen = buf.getInt();
-    int originalLimit = buf.limit();
-    buf.limit(buf.position() + msgLen);
-    Channels.newChannel(System.out).write(buf);
-    System.out.println();
-    buf.limit(originalLimit);
-}
-
-private void sendFile(SocketChannel clientChannel, ByteBuffer buf, Path path) throws IOException {
-    System.out.println(Files.size(path));
-    buf.putInt((int) Files.size(path));
-    buf.flip();
-    clientChannel.write(buf);
-    buf.clear();
+private void sendFile(SocketChannel clientChannel, ByteBuffer buffer, Path path) throws IOException {
+    buffer.putInt((int) Files.size(path));
+    buffer.flip();
+    while (buffer.hasRemaining()) {
+        clientChannel.write(buffer);
+    }
+    buffer.clear();
     try (FileChannel file = FileChannel.open(path)) {
-        while (file.read(buf) >= 0) {
-            buf.flip();
-            clientChannel.write(buf);
-            buf.compact();
+        while (file.read(buffer) >= 0) {
+            buffer.flip();
+            while (buffer.hasRemaining()) {
+                clientChannel.write(buffer);
+            }
+            buffer.compact();
         }
     }
 }
 
-private void downLoadFile(SocketChannel clientChannel, ByteBuffer buf, Path path) throws IOException {
-    clientChannel.read(buf);
-    buf.flip();
-    int messageSize = buf.getInt();
-    byte[] resBytes = new byte[messageSize];
-    buf.get(resBytes);
-    String res = new String(resBytes, StandardCharsets.UTF_8);
-    System.out.println(res);
-    if (res.startsWith("error")) {
-        System.out.println("ERROR");
+private void readDownloadResponse(SocketChannel clientChannel, ByteBuffer buffer, Path path) throws IOException {
+    while (buffer.position() < INT_SIZE) {
+        clientChannel.read(buffer);
+    }
+    buffer.flip();
+    int messageSize = buffer.getInt();
+    buffer.compact();
+    if (messageSize < DOWNLOAD_MESSAGE_LEN) {
         return;
     }
-    int fileSize = buf.getInt();
-    try (InputStream socketStream = new BoundedChannelInputStream(clientChannel, buf, fileSize)) {
-        Files.copy(socketStream, path);
+    while (buffer.position() < DOWNLOAD_MESSAGE_LEN) {
+        clientChannel.read(buffer);
     }
+    buffer.flip();
+    byte[] statusBytes = new byte[DOWNLOAD_MESSAGE_LEN];
+    buffer.get(statusBytes, 0, DOWNLOAD_MESSAGE_LEN);
+    String status = new String(statusBytes);
+
+    switch (status) {
+        case "correct" -> downloadFile(clientChannel, buffer, path, messageSize - DOWNLOAD_MESSAGE_LEN);
+        case "error  " -> readDownloadMessage(clientChannel, buffer, messageSize - DOWNLOAD_MESSAGE_LEN);
+    }
+}
+
+void readDownloadMessage(SocketChannel clientChannel, ByteBuffer buffer, int messageLen) throws IOException {
+    buffer.compact();
+    while (buffer.position() < messageLen ) {
+        clientChannel.read(buffer);
+    }
+    buffer.flip();
+    byte[] messageBytes = new byte[messageLen];
+    buffer.get(messageBytes, 0, messageLen);
+    String message= new String(messageBytes, StandardCharsets.UTF_8);
+    System.out.println(message);
+}
+
+void downloadFile(SocketChannel clientChannel, ByteBuffer buffer, Path filePath, int fileSize) throws IOException {
+    try (InputStream socketStream = new BoundedChannelInputStream(clientChannel, buffer, fileSize)) {
+        Files.copy(socketStream, filePath, StandardCopyOption.REPLACE_EXISTING);
+    }
+    System.out.println("Download successful");
 }
