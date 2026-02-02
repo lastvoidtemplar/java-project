@@ -3,6 +3,7 @@ import auth.UserFileStorage;
 import auth.UserPersistenceException;
 import dispatcher.Dispatcher;
 import handlers.EchoHandler;
+import handlers.StreamHandler;
 import handlers.auth.LoginHandler;
 import handlers.auth.LogoutHandler;
 import handlers.auth.RegisterHandler;
@@ -28,6 +29,7 @@ private Services setupServices() throws UserPersistenceException {
 private Dispatcher setupDispatcher() {
     return Dispatcher.newBuilder()
         .registerHandler("echo", new EchoHandler())
+        .registerHandler("stream", new StreamHandler())
         .registerHandler("register", new RegisterHandler())
         .registerHandler("login", new LoginHandler())
         .registerHandler("logout", new LogoutHandler())

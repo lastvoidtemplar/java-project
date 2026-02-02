@@ -7,6 +7,9 @@ import dispatcher.Dispatcher;
 import dispatcher.MissingHandlerException;
 import services.Services;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,13 +28,18 @@ public class CommandExecutor {
         this.queue = new ConcurrentLinkedQueue<>();
     }
 
-    public void executeCommand(TcpResponseWriter writer, String input, Session session) {
+    public void executeCommand(TcpResponseWriter writer, String input, InputStream stream, Session session) {
         new Thread(() -> {
-            CommandContext ctx = CommandContextCreator.newCommandContext(input, session, services);
+            CommandContext ctx = CommandContextCreator.newCommandContext(input, stream, session, services);
             try {
                 dispatcher.dispatch(writer, ctx);
             } catch (MissingHandlerException e) {
                 writer.write("Unsupported command");
+            }
+            try {
+                stream.transferTo(OutputStream.nullOutputStream());
+            } catch (IOException e) {
+                System.out.println("Лошо");
             }
             queue.add(writer);
             selector.wakeup();

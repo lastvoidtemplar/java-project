@@ -8,21 +8,22 @@ final List<String> cmds = List.of(
 );
 
 void main() throws Exception {
-    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
-    clientChannel.configureBlocking(false);
-    ByteBuffer buf = ByteBuffer.allocate(BUFFER_SIZE);
-
-    sendCommands(clientChannel, buf);
-
-    Selector selector = Selector.open();
-    clientChannel.register(selector, SelectionKey.OP_READ, buf);
-
-    while (true) {
-        int countSelectedKeys = selector.select();
-        if (countSelectedKeys == 0) {
-            continue;
-        }
-        handleSelectedKeys(selector);
+    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost",3000));
+    ByteBuffer buf = ByteBuffer.allocate(1024);
+    putStringIntoByteBuffer(buf, "stream");
+    buf.flip();
+    clientChannel.write(buf);
+    buf.clear();
+    Path path = Path.of("./resources/big.txt");
+    buf.putInt((int) Files.size(path));
+    buf.clear();
+    clientChannel.write(buf);
+    buf.clear();
+    FileChannel file = FileChannel.open(path);
+    while (file.read(buf) >= 0) {
+        buf.flip();
+        clientChannel.write(buf);
+        buf.compact();
     }
 }
 

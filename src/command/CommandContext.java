@@ -3,7 +3,9 @@ package command;
 import auth.Session;
 import services.Services;
 
-public record CommandContext(Command cmd, Session session, Services services) {
+import java.io.InputStream;
+
+public record CommandContext(Command cmd, InputStream stream, Session session, Services services) {
     private static final String COMMAND_NULL_MESSAGE = "Command must be non-null";
     private static final String SESSION_NULL_MESSAGE = "Session must be non-null";
     private static final String SERVICES_NULL_MESSAGE = "Services must be non-null";

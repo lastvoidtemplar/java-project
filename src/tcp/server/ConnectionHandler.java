@@ -3,6 +3,7 @@ package tcp.server;
 import auth.Session;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -48,9 +49,11 @@ public class ConnectionHandler {
 
                 inputBuffer.flip();
                 String cmd = readInput();
-                inputBuffer.compact();
+
                 if (cmd != null) {
-                    dispatchCommand(cmd);
+                    int streamSize = inputBuffer.getInt();
+                    InputStream stream = createInputStream(streamSize);
+                    dispatchCommand(cmd, stream);
                 }
             } catch (IOException e) {
                 handleDisconnect(key);
@@ -75,7 +78,7 @@ public class ConnectionHandler {
         }
         inputBuffer.mark();
         int cmdLen = inputBuffer.getInt();
-        if (inputBuffer.remaining() < cmdLen) {
+        if (inputBuffer.remaining() < cmdLen + INT_BYTE_SIZE) {
             inputBuffer.reset();
             return null;
         }
@@ -84,10 +87,14 @@ public class ConnectionHandler {
         return new String(inputBytes, StandardCharsets.UTF_8);
     }
 
-    private void dispatchCommand(String cmd) {
+    private InputStream createInputStream(int streamSize) {
+        return new BoundedChannelInputStream(clientChannel, inputBuffer, streamSize);
+    }
+
+    private void dispatchCommand(String cmd, InputStream stream) {
         this.responseWriter = new TcpResponseWriter(clientChannel);
         clientChannel.keyFor(selector).interestOps(0);
-        executor.executeCommand(responseWriter, cmd, session);
+        executor.executeCommand(responseWriter, cmd, stream, session);
     }
 
     public void handleWrite(SelectionKey key) {
@@ -121,14 +128,16 @@ public class ConnectionHandler {
     private void handleOutputEOF(SelectionKey key) {
         this.responseWriter = null;
         this.didWroteOutputLen = false;
-        inputBuffer.flip();
         String cmd = readInput();
-        inputBuffer.compact();
         if (cmd != null) {
             key.interestOps(0);
-            dispatchCommand(cmd);
+            int streamSize = inputBuffer.getInt();
+            InputStream stream = createInputStream(streamSize);
+            dispatchCommand(cmd, stream);
         } else {
+            inputBuffer.compact();
             key.interestOps(SelectionKey.OP_READ);
+
         }
     }
 }
