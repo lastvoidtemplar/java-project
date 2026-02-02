@@ -15,7 +15,7 @@ void main() throws Exception {
     SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
     ByteBuffer buf = ByteBuffer.allocate(1024);
 
-    putStringIntoByteBuffer(buf, "login ivan 4321");
+    putStringIntoByteBuffer(buf, "login deyan 1234");
     buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);
@@ -23,14 +23,19 @@ void main() throws Exception {
     clientChannel.read(buf);
     buf.clear();
 
-    putStringIntoByteBuffer(buf, "download landscape2.jpg");
+    putStringIntoByteBuffer(buf, "delete-file landscape1.jpg");
     buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);
     buf.clear();
-    Path path = Path.of("./resources/downloaded_landscape.jpg");
-    Thread.sleep(1000);
-    downLoadFile(clientChannel, buf, path);
+
+    clientChannel.read(buf);
+    buf.flip();
+    int messageSize = buf.getInt();
+    byte[] resBytes = new byte[messageSize];
+    buf.get(resBytes);
+    String res = new String(resBytes, StandardCharsets.UTF_8);
+    System.out.println(res);
 }
 
 void sendCommands(SocketChannel clientChannel, ByteBuffer buf) throws IOException {

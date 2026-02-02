@@ -14,6 +14,7 @@ public class UploadHandler implements CommandHandler {
     private static final String LOGIN_FIRST_MESSAGE = "Login first!";
     private static final String SERVER_PROBLEM_MESSAGE =
         "Server problem 500";
+    private static final String SUCCESSFUL_MESSAGE = "Successful upload!";
     private static final int UPLOAD_ARGUMENT_COUNT = 1;
     private static final int ARGUMENTS_FILENAME_IND = 0;
 
@@ -33,6 +34,7 @@ public class UploadHandler implements CommandHandler {
         try {
             ctx.services().userDirectoryService()
                 .upload(loggedUsername, args.get(ARGUMENTS_FILENAME_IND), ctx.stream());
+            writer.write(SUCCESSFUL_MESSAGE);
         } catch (FileAlreadyExistsException e) {
             System.out.println(e.getMessage());
             writer.write(e.getMessage());
