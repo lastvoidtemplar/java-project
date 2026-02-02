@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 public class BoundedChannelInputStream extends InputStream {
+    private static final int BYTE_MASK = 0xff;
+
     private final SocketChannel clientChannel;
     private final ByteBuffer buffer;
     private int remaining;
@@ -16,11 +18,23 @@ public class BoundedChannelInputStream extends InputStream {
         this.remaining = size;
     }
 
+    public int getRemaining() {
+        return remaining;
+    }
+
     @Override
     public int read() throws IOException {
-        byte[] one = new byte[1];
-        int r = read(one, 0, 1);
-        return r == -1 ? -1 : one[0] & 0xff;
+        byte[] b = new byte[1];
+        int read = read(b, 0, 1);
+        if (read == -1) {
+            return read;
+        }
+        return b[0] & BYTE_MASK;
+    }
+
+    @Override
+    public int read(byte[] b) throws IOException {
+        return read(b, 0, b.length);
     }
 
     @Override

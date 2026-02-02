@@ -12,8 +12,6 @@ import java.util.List;
 public class LoginHandler implements CommandHandler {
     private static final String INVALID_LOGIN_COMMAND_FORMAT =
         "Login command must have 2 string arguments(<username> <password>)";
-    private static final String SERVER_PROBLEM_MESSAGE =
-        "Server problem 500";
     private static final String SUCCESSFUL_MESSAGE = "Successful login!";
     private static final int LOGIN_ARGUMENT_COUNT = 2;
     private static final int ARGUMENTS_USERNAME_IND = 0;

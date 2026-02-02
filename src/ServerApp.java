@@ -8,11 +8,14 @@ import handlers.auth.LoginHandler;
 import handlers.auth.LogoutHandler;
 import handlers.auth.RegisterHandler;
 import handlers.auth.WhoAmIHandler;
+import handlers.user.storage.UploadHandler;
 import services.Services;
 import tcp.server.TcpServer;
+import user.storage.UserDirectoryService;
 
 static int PORT = 3000;
 static String USERS_FILE_NAME = "./resources/users.txt";
+static String ROOT_USER_DIRECTORY = "./resources/users_files";
 
 void main() throws Exception {
     Services services = setupServices();
@@ -23,7 +26,10 @@ void main() throws Exception {
 private Services setupServices() throws UserPersistenceException {
     UserFileStorage userStorage = new UserFileStorage(Path.of(USERS_FILE_NAME));
     AuthService authService = new AuthService(userStorage);
-    return new Services(authService);
+
+    UserDirectoryService userDirectoryService = new UserDirectoryService(Path.of(ROOT_USER_DIRECTORY));
+
+    return new Services(authService, userDirectoryService);
 }
 
 private Dispatcher setupDispatcher() {
@@ -34,5 +40,6 @@ private Dispatcher setupDispatcher() {
         .registerHandler("login", new LoginHandler())
         .registerHandler("logout", new LogoutHandler())
         .registerHandler("whoami", new WhoAmIHandler())
+        .registerHandler("upload", new UploadHandler())
         .build();
 }

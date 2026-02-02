@@ -54,6 +54,8 @@ public class ConnectionHandler {
                     int streamSize = inputBuffer.getInt();
                     InputStream stream = createInputStream(streamSize);
                     dispatchCommand(cmd, stream);
+                } else {
+                    inputBuffer.compact();
                 }
             } catch (IOException e) {
                 handleDisconnect(key);
@@ -137,7 +139,6 @@ public class ConnectionHandler {
         } else {
             inputBuffer.compact();
             key.interestOps(SelectionKey.OP_READ);
-
         }
     }
 }

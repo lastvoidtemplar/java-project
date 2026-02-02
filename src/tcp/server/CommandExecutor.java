@@ -35,6 +35,8 @@ public class CommandExecutor {
                 dispatcher.dispatch(writer, ctx);
             } catch (MissingHandlerException e) {
                 writer.write("Unsupported command");
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
             }
             try {
                 stream.transferTo(OutputStream.nullOutputStream());

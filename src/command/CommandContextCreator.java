@@ -39,8 +39,9 @@ public class CommandContextCreator {
         return new Command(arguments.getFirst(), commandArguments);
     }
 
-    public static CommandContext newCommandContext(String input, InputStream stream, Session session, Services services) {
+    public static CommandContext newCommandContext(String input, InputStream stream, Session session,
+                                                   Services services) {
         Command command = newCommand(input);
-        return new CommandContext(command,stream, session, services);
+        return new CommandContext(command, stream, session, services);
     }
 }

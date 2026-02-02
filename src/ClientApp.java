@@ -8,23 +8,21 @@ final List<String> cmds = List.of(
 );
 
 void main() throws Exception {
-    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost",3000));
+    SocketChannel clientChannel = SocketChannel.open(new InetSocketAddress("localhost", 3000));
     ByteBuffer buf = ByteBuffer.allocate(1024);
-    putStringIntoByteBuffer(buf, "stream");
+
+    putStringIntoByteBuffer(buf, "login deyan 1234");
+    buf.putInt(0);
     buf.flip();
     clientChannel.write(buf);
     buf.clear();
-    Path path = Path.of("./resources/big.txt");
-    buf.putInt((int) Files.size(path));
-    buf.clear();
+
+    putStringIntoByteBuffer(buf, "upload landscape1.jpg");
+    buf.flip();
     clientChannel.write(buf);
     buf.clear();
-    FileChannel file = FileChannel.open(path);
-    while (file.read(buf) >= 0) {
-        buf.flip();
-        clientChannel.write(buf);
-        buf.compact();
-    }
+    Path path = Path.of("./resources/landscape.jpg");
+    sendFile(clientChannel, buf, path);
 }
 
 void sendCommands(SocketChannel clientChannel, ByteBuffer buf) throws IOException {
@@ -67,7 +65,7 @@ private void read(SelectionKey key) throws IOException {
     buf.compact();
 }
 
-private void writeToStdout(ByteBuffer buf)  throws IOException{
+private void writeToStdout(ByteBuffer buf) throws IOException {
 
     int msgLen = buf.getInt();
     int originalLimit = buf.limit();
@@ -75,5 +73,19 @@ private void writeToStdout(ByteBuffer buf)  throws IOException{
     Channels.newChannel(System.out).write(buf);
     System.out.println();
     buf.limit(originalLimit);
+}
 
+private void sendFile(SocketChannel clientChannel, ByteBuffer buf, Path path) throws IOException {
+    System.out.println(Files.size(path));
+    buf.putInt((int) Files.size(path));
+    buf.flip();
+    clientChannel.write(buf);
+    buf.clear();
+    try (FileChannel file = FileChannel.open(path)) {
+        while (file.read(buf) >= 0) {
+            buf.flip();
+            clientChannel.write(buf);
+            buf.compact();
+        }
+    }
 }
